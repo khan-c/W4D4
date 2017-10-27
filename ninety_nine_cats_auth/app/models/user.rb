@@ -5,14 +5,14 @@
 #  id              :integer          not null, primary key
 #  username        :string           not null
 #  password_digest :string           not null
-#  session_token   :string           not null
 #  created_at      :datetime         not null
 #  updated_at      :datetime         not null
+#  session_id      :integer          not null
 #
 
 class User < ApplicationRecord
-  validates :username, :session_token, :password_digest, presence: true
-  validates :username, :session_token, uniqueness: true
+  validates :username, :password_digest, presence: true
+  validates :username, uniqueness: true
   validates :password, length: { minimum: 6, allow_nil: true }
   after_initialize :ensure_session_token
 
@@ -21,6 +21,7 @@ class User < ApplicationRecord
     class_name: :CatRentalRequest,
     primary_key: :id,
     foreign_key: :user_id
+  has_many :sessions
 
   attr_reader :password
 
@@ -35,13 +36,14 @@ class User < ApplicationRecord
   end
 
   def ensure_session_token
-    self.session_token ||= SecureRandom::urlsafe_base64
+    # self.session_token ||= Session.new_token
+    if self.sessions.empty?
+      Session.create(user_id: self.id, session_token: Session.new_token)
+    end
   end
 
   def reset_session_token!
-    self.session_token = SecureRandom::urlsafe_base64
-    self.save!
-    self.session_token
+    Session.find(self.session_id).reset_session_token!
   end
 
   def valid_password?(password)

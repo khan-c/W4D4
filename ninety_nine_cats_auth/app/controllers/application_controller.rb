@@ -4,11 +4,13 @@ class ApplicationController < ActionController::Base
 
   def current_user
     return nil unless session[:session_token]
-    @current_user ||= User.find_by(session_token: session[:session_token])
+    sesh = Session.find_by(session_token: session[:session_token])
+    return nil unless sesh
+    @current_user ||= sesh.user
   end
 
   def login!(user)
-    session[:session_token] = user.session_token
+    session[:session_token] = user.sessions.last
   end
 
   def logged_in?
